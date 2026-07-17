@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.btnConnect = new System.Windows.Forms.Button();
             this.btnRefresh = new System.Windows.Forms.Button();
@@ -37,7 +38,9 @@
             this.label1 = new System.Windows.Forms.Label();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.numPower = new System.Windows.Forms.NumericUpDown();
+            this.btnSave = new System.Windows.Forms.Button();
             this.label9 = new System.Windows.Forms.Label();
+            this.btnApply = new System.Windows.Forms.Button();
             this.cmbCr = new System.Windows.Forms.ComboBox();
             this.label8 = new System.Windows.Forms.Label();
             this.cmbSf = new System.Windows.Forms.ComboBox();
@@ -54,12 +57,28 @@
             this.numNodeId = new System.Windows.Forms.NumericUpDown();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.btnGetInput = new System.Windows.Forms.Button();
-            this.btnSave = new System.Windows.Forms.Button();
-            this.btnApply = new System.Windows.Forms.Button();
             this.btnGetConfig = new System.Windows.Forms.Button();
             this.btnTestAT = new System.Windows.Forms.Button();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.txtLog = new System.Windows.Forms.TextBox();
+            this.grpSensorConfig = new System.Windows.Forms.GroupBox();
+            this.btnSensorRemove = new System.Windows.Forms.Button();
+            this.btnSensorUpdate = new System.Windows.Forms.Button();
+            this.btnSensorAdd = new System.Windows.Forms.Button();
+            this.cmbRegisterLength = new System.Windows.Forms.ComboBox();
+            this.label13 = new System.Windows.Forms.Label();
+            this.label11 = new System.Windows.Forms.Label();
+            this.cmbStartRegister = new System.Windows.Forms.ComboBox();
+            this.cmbSensorFunction = new System.Windows.Forms.ComboBox();
+            this.label12 = new System.Windows.Forms.Label();
+            this.cmbSensorSlave = new System.Windows.Forms.ComboBox();
+            this.label10 = new System.Windows.Forms.Label();
+            this.groupBox5 = new System.Windows.Forms.GroupBox();
+            this.dgvSensorList = new System.Windows.Forms.DataGridView();
+            this.colSlaveId = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colFunctionCode = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colStartRegister = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colRegisterLength = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numPower)).BeginInit();
@@ -67,6 +86,9 @@
             ((System.ComponentModel.ISupportInitialize)(this.numNodeId)).BeginInit();
             this.groupBox3.SuspendLayout();
             this.groupBox4.SuspendLayout();
+            this.grpSensorConfig.SuspendLayout();
+            this.groupBox5.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvSensorList)).BeginInit();
             this.SuspendLayout();
             // 
             // groupBox1
@@ -142,6 +164,7 @@
             // 
             this.groupBox2.Controls.Add(this.numPower);
             this.groupBox2.Controls.Add(this.label9);
+            this.groupBox2.Controls.Add(this.btnApply);
             this.groupBox2.Controls.Add(this.cmbCr);
             this.groupBox2.Controls.Add(this.label8);
             this.groupBox2.Controls.Add(this.cmbSf);
@@ -158,7 +181,7 @@
             this.groupBox2.Controls.Add(this.numNodeId);
             this.groupBox2.Location = new System.Drawing.Point(5, 128);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(279, 310);
+            this.groupBox2.Size = new System.Drawing.Size(279, 343);
             this.groupBox2.TabIndex = 1;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "LoRa Config";
@@ -171,6 +194,16 @@
             this.numPower.Size = new System.Drawing.Size(120, 20);
             this.numPower.TabIndex = 2;
             // 
+            // btnSave
+            // 
+            this.btnSave.Location = new System.Drawing.Point(325, 28);
+            this.btnSave.Name = "btnSave";
+            this.btnSave.Size = new System.Drawing.Size(75, 23);
+            this.btnSave.TabIndex = 3;
+            this.btnSave.Text = "Save Flash";
+            this.btnSave.UseVisualStyleBackColor = true;
+            this.btnSave.Click += new System.EventHandler(this.btnSave_Click_1);
+            // 
             // label9
             // 
             this.label9.AutoSize = true;
@@ -179,6 +212,16 @@
             this.label9.Size = new System.Drawing.Size(54, 13);
             this.label9.TabIndex = 2;
             this.label9.Text = "TX Power";
+            // 
+            // btnApply
+            // 
+            this.btnApply.Location = new System.Drawing.Point(183, 305);
+            this.btnApply.Name = "btnApply";
+            this.btnApply.Size = new System.Drawing.Size(75, 23);
+            this.btnApply.TabIndex = 2;
+            this.btnApply.Text = "Apply";
+            this.btnApply.UseVisualStyleBackColor = true;
+            this.btnApply.Click += new System.EventHandler(this.btnApply_Click_1);
             // 
             // cmbCr
             // 
@@ -305,7 +348,6 @@
             // 
             this.groupBox3.Controls.Add(this.btnGetInput);
             this.groupBox3.Controls.Add(this.btnSave);
-            this.groupBox3.Controls.Add(this.btnApply);
             this.groupBox3.Controls.Add(this.btnGetConfig);
             this.groupBox3.Controls.Add(this.btnTestAT);
             this.groupBox3.Location = new System.Drawing.Point(297, 128);
@@ -318,32 +360,12 @@
             // 
             // btnGetInput
             // 
-            this.btnGetInput.Location = new System.Drawing.Point(409, 28);
+            this.btnGetInput.Location = new System.Drawing.Point(210, 28);
             this.btnGetInput.Name = "btnGetInput";
             this.btnGetInput.Size = new System.Drawing.Size(75, 23);
             this.btnGetInput.TabIndex = 4;
             this.btnGetInput.Text = "Get INPUT";
             this.btnGetInput.UseVisualStyleBackColor = true;
-            // 
-            // btnSave
-            // 
-            this.btnSave.Location = new System.Drawing.Point(314, 28);
-            this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(75, 23);
-            this.btnSave.TabIndex = 3;
-            this.btnSave.Text = "Save Flash";
-            this.btnSave.UseVisualStyleBackColor = true;
-            this.btnSave.Click += new System.EventHandler(this.btnSave_Click_1);
-            // 
-            // btnApply
-            // 
-            this.btnApply.Location = new System.Drawing.Point(212, 28);
-            this.btnApply.Name = "btnApply";
-            this.btnApply.Size = new System.Drawing.Size(75, 23);
-            this.btnApply.TabIndex = 2;
-            this.btnApply.Text = "Apply";
-            this.btnApply.UseVisualStyleBackColor = true;
-            this.btnApply.Click += new System.EventHandler(this.btnApply_Click_1);
             // 
             // btnGetConfig
             // 
@@ -368,7 +390,7 @@
             this.groupBox4.Controls.Add(this.txtLog);
             this.groupBox4.Location = new System.Drawing.Point(297, 221);
             this.groupBox4.Name = "groupBox4";
-            this.groupBox4.Size = new System.Drawing.Size(490, 216);
+            this.groupBox4.Size = new System.Drawing.Size(490, 250);
             this.groupBox4.TabIndex = 3;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Log";
@@ -380,14 +402,199 @@
             this.txtLog.Name = "txtLog";
             this.txtLog.ReadOnly = true;
             this.txtLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtLog.Size = new System.Drawing.Size(484, 196);
+            this.txtLog.Size = new System.Drawing.Size(484, 225);
             this.txtLog.TabIndex = 0;
+            // 
+            // grpSensorConfig
+            // 
+            this.grpSensorConfig.Controls.Add(this.btnSensorRemove);
+            this.grpSensorConfig.Controls.Add(this.btnSensorUpdate);
+            this.grpSensorConfig.Controls.Add(this.btnSensorAdd);
+            this.grpSensorConfig.Controls.Add(this.cmbRegisterLength);
+            this.grpSensorConfig.Controls.Add(this.label13);
+            this.grpSensorConfig.Controls.Add(this.label11);
+            this.grpSensorConfig.Controls.Add(this.cmbStartRegister);
+            this.grpSensorConfig.Controls.Add(this.cmbSensorFunction);
+            this.grpSensorConfig.Controls.Add(this.label12);
+            this.grpSensorConfig.Controls.Add(this.cmbSensorSlave);
+            this.grpSensorConfig.Controls.Add(this.label10);
+            this.grpSensorConfig.Location = new System.Drawing.Point(5, 477);
+            this.grpSensorConfig.Name = "grpSensorConfig";
+            this.grpSensorConfig.Size = new System.Drawing.Size(279, 208);
+            this.grpSensorConfig.TabIndex = 4;
+            this.grpSensorConfig.TabStop = false;
+            this.grpSensorConfig.Text = "RS485 Sensor Config";
+            this.grpSensorConfig.Enter += new System.EventHandler(this.groupBox5_Enter);
+            // 
+            // btnSensorRemove
+            // 
+            this.btnSensorRemove.Location = new System.Drawing.Point(183, 171);
+            this.btnSensorRemove.Name = "btnSensorRemove";
+            this.btnSensorRemove.Size = new System.Drawing.Size(75, 23);
+            this.btnSensorRemove.TabIndex = 6;
+            this.btnSensorRemove.Text = "Remove";
+            this.btnSensorRemove.UseVisualStyleBackColor = true;
+            // 
+            // btnSensorUpdate
+            // 
+            this.btnSensorUpdate.Location = new System.Drawing.Point(102, 171);
+            this.btnSensorUpdate.Name = "btnSensorUpdate";
+            this.btnSensorUpdate.Size = new System.Drawing.Size(75, 23);
+            this.btnSensorUpdate.TabIndex = 6;
+            this.btnSensorUpdate.Text = "Update";
+            this.btnSensorUpdate.UseVisualStyleBackColor = true;
+            // 
+            // btnSensorAdd
+            // 
+            this.btnSensorAdd.Location = new System.Drawing.Point(21, 171);
+            this.btnSensorAdd.Name = "btnSensorAdd";
+            this.btnSensorAdd.Size = new System.Drawing.Size(75, 23);
+            this.btnSensorAdd.TabIndex = 6;
+            this.btnSensorAdd.Text = "Add";
+            this.btnSensorAdd.UseVisualStyleBackColor = true;
+            this.btnSensorAdd.Click += new System.EventHandler(this.button1_Click);
+            // 
+            // cmbRegisterLength
+            // 
+            this.cmbRegisterLength.FormattingEnabled = true;
+            this.cmbRegisterLength.Location = new System.Drawing.Point(116, 130);
+            this.cmbRegisterLength.Name = "cmbRegisterLength";
+            this.cmbRegisterLength.Size = new System.Drawing.Size(121, 21);
+            this.cmbRegisterLength.TabIndex = 5;
+            // 
+            // label13
+            // 
+            this.label13.AutoSize = true;
+            this.label13.Location = new System.Drawing.Point(21, 138);
+            this.label13.Name = "label13";
+            this.label13.Size = new System.Drawing.Size(82, 13);
+            this.label13.TabIndex = 5;
+            this.label13.Text = "Register Length";
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(21, 105);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(71, 13);
+            this.label11.TabIndex = 5;
+            this.label11.Text = "Start Register";
+            // 
+            // cmbStartRegister
+            // 
+            this.cmbStartRegister.FormattingEnabled = true;
+            this.cmbStartRegister.Location = new System.Drawing.Point(116, 97);
+            this.cmbStartRegister.Name = "cmbStartRegister";
+            this.cmbStartRegister.Size = new System.Drawing.Size(121, 21);
+            this.cmbStartRegister.TabIndex = 5;
+            // 
+            // cmbSensorFunction
+            // 
+            this.cmbSensorFunction.FormattingEnabled = true;
+            this.cmbSensorFunction.Location = new System.Drawing.Point(116, 64);
+            this.cmbSensorFunction.Name = "cmbSensorFunction";
+            this.cmbSensorFunction.Size = new System.Drawing.Size(121, 21);
+            this.cmbSensorFunction.TabIndex = 5;
+            // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.Location = new System.Drawing.Point(22, 72);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(76, 13);
+            this.label12.TabIndex = 5;
+            this.label12.Text = "Function Code";
+            // 
+            // cmbSensorSlave
+            // 
+            this.cmbSensorSlave.FormattingEnabled = true;
+            this.cmbSensorSlave.Location = new System.Drawing.Point(117, 31);
+            this.cmbSensorSlave.Name = "cmbSensorSlave";
+            this.cmbSensorSlave.Size = new System.Drawing.Size(121, 21);
+            this.cmbSensorSlave.TabIndex = 5;
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(22, 39);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(48, 13);
+            this.label10.TabIndex = 5;
+            this.label10.Text = "Slave ID";
+            this.label10.Click += new System.EventHandler(this.label10_Click);
+            // 
+            // groupBox5
+            // 
+            this.groupBox5.Controls.Add(this.dgvSensorList);
+            this.groupBox5.Location = new System.Drawing.Point(296, 477);
+            this.groupBox5.Name = "groupBox5";
+            this.groupBox5.Size = new System.Drawing.Size(490, 208);
+            this.groupBox5.TabIndex = 5;
+            this.groupBox5.TabStop = false;
+            this.groupBox5.Text = "Sensor Lists";
+            // 
+            // dgvSensorList
+            // 
+            this.dgvSensorList.AllowUserToAddRows = false;
+            this.dgvSensorList.AllowUserToDeleteRows = false;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle2.BackColor = System.Drawing.Color.Black;
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F);
+            dataGridViewCellStyle2.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvSensorList.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle2;
+            this.dgvSensorList.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvSensorList.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colSlaveId,
+            this.colFunctionCode,
+            this.colStartRegister,
+            this.colRegisterLength});
+            this.dgvSensorList.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dgvSensorList.Location = new System.Drawing.Point(3, 16);
+            this.dgvSensorList.Name = "dgvSensorList";
+            this.dgvSensorList.ReadOnly = true;
+            this.dgvSensorList.RowHeadersVisible = false;
+            this.dgvSensorList.Size = new System.Drawing.Size(484, 189);
+            this.dgvSensorList.TabIndex = 0;
+            this.dgvSensorList.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView1_CellContentClick);
+            // 
+            // colSlaveId
+            // 
+            this.colSlaveId.HeaderText = "Slave ID";
+            this.colSlaveId.Name = "colSlaveId";
+            this.colSlaveId.ReadOnly = true;
+            this.colSlaveId.Width = 120;
+            // 
+            // colFunctionCode
+            // 
+            this.colFunctionCode.HeaderText = "Function Code";
+            this.colFunctionCode.Name = "colFunctionCode";
+            this.colFunctionCode.ReadOnly = true;
+            this.colFunctionCode.Width = 120;
+            // 
+            // colStartRegister
+            // 
+            this.colStartRegister.HeaderText = "Start Register";
+            this.colStartRegister.Name = "colStartRegister";
+            this.colStartRegister.ReadOnly = true;
+            this.colStartRegister.Width = 120;
+            // 
+            // colRegisterLength
+            // 
+            this.colRegisterLength.HeaderText = "Register Length";
+            this.colRegisterLength.Name = "colRegisterLength";
+            this.colRegisterLength.ReadOnly = true;
+            this.colRegisterLength.Width = 120;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.ClientSize = new System.Drawing.Size(800, 760);
+            this.Controls.Add(this.groupBox5);
+            this.Controls.Add(this.grpSensorConfig);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
@@ -405,6 +612,10 @@
             this.groupBox3.ResumeLayout(false);
             this.groupBox4.ResumeLayout(false);
             this.groupBox4.PerformLayout();
+            this.grpSensorConfig.ResumeLayout(false);
+            this.grpSensorConfig.PerformLayout();
+            this.groupBox5.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dgvSensorList)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -443,6 +654,24 @@
         private System.Windows.Forms.Button btnTestAT;
         private System.Windows.Forms.GroupBox groupBox4;
         private System.Windows.Forms.TextBox txtLog;
+        private System.Windows.Forms.GroupBox grpSensorConfig;
+        private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.ComboBox cmbSensorSlave;
+        private System.Windows.Forms.ComboBox cmbSensorFunction;
+        private System.Windows.Forms.Label label12;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.ComboBox cmbStartRegister;
+        private System.Windows.Forms.ComboBox cmbRegisterLength;
+        private System.Windows.Forms.Label label13;
+        private System.Windows.Forms.GroupBox groupBox5;
+        private System.Windows.Forms.DataGridView dgvSensorList;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colSlaveId;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colFunctionCode;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colStartRegister;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colRegisterLength;
+        private System.Windows.Forms.Button btnSensorAdd;
+        private System.Windows.Forms.Button btnSensorRemove;
+        private System.Windows.Forms.Button btnSensorUpdate;
     }
 }
 
