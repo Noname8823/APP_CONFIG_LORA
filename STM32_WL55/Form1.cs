@@ -19,7 +19,7 @@ namespace STM32_WL55
         private const int AtTimeoutMs = 2000;
         private const int SensorTimeoutMs = 10000;
         private const int GetConfigTimeoutMs = 8000;
-
+        private const int GetSensorsTimeoutMs = 8000;
         /*
          * USB-RS485/driver cần một khoảng ngắn sau khi mở COM.
          * Đồng thời retry AT để tự phục hồi nếu STM32 còn một dòng RX dở.
@@ -57,6 +57,9 @@ namespace STM32_WL55
          */
         private TaskCompletionSource<bool>
             pendingGetConfig;
+
+        private TaskCompletionSource<bool>
+            pendingGetSensors;
 
         /*
          * Danh sách tạm nhận từ STM32.
@@ -114,8 +117,8 @@ namespace STM32_WL55
             btnSensorAdd.Click -= BtnSensorAdd_Click;
             btnSensorAdd.Click += BtnSensorAdd_Click;
 
-            btnSensorUpdate.Click -= BtnSensorUpdate_Click;
-            btnSensorUpdate.Click += BtnSensorUpdate_Click;
+            btnGetSensor.Click -= BtnGetSensor_Click;
+            btnGetSensor.Click += BtnGetSensor_Click;
 
             btnSensorRemove.Click -= BtnSensorRemove_Click;
             btnSensorRemove.Click += BtnSensorRemove_Click;
@@ -492,6 +495,7 @@ namespace STM32_WL55
             dgvSensorList.Rows.Clear();
         }
 
+
         /* =====================================================
          * CONTROL STATE
          * ===================================================== */
@@ -529,6 +533,7 @@ namespace STM32_WL55
                 !isBusy;
 
             btnGetConfig.Enabled = ready;
+            btnGetSensor.Enabled = ready;
             btnGetInput.Enabled = ready;
             btnApply.Enabled = ready;
             btnSave.Enabled = ready;
@@ -542,10 +547,6 @@ namespace STM32_WL55
                 rowSelected;
 
             cmbChangeSlaveId.Enabled =
-                ready &&
-                rowSelected;
-
-            btnSensorUpdate.Enabled =
                 ready &&
                 rowSelected;
 
@@ -742,6 +743,7 @@ namespace STM32_WL55
                 pendingSimpleCommand = null;
                 pendingSensorTest = null;
                 pendingGetConfig = null;
+                pendingGetSensors = null;
 
                 serial.PortName = cmbPort.Text;
                 serial.BaudRate = FixedBaudRate;
@@ -899,7 +901,46 @@ namespace STM32_WL55
 
             try
             {
-                await GetAllConfigAsync();
+                /*
+                 * Chỉ lấy cấu hình LoRa.
+                 * Không thay đổi bảng Sensor.
+                 */
+                await GetLoRaConfigAsync();
+
+                Log("Đã nhận cấu hình LoRa.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Get LoRa Config Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
+        private async void BtnGetSensor_Click(
+            object sender,
+            EventArgs e)
+        {
+            if (!CheckDeviceReady())
+            {
+                return;
+            }
+
+            SetBusy(true);
+
+            try
+            {
+                /*
+                 * Chỉ lấy danh sách cảm biến.
+                 * Không đọc lại cấu hình LoRa.
+                 */
+                await GetSensorsAsync();
 
                 Log(
                     "Đã nhận " +
@@ -910,7 +951,7 @@ namespace STM32_WL55
             {
                 MessageBox.Show(
                     ex.Message,
-                    "Get Config Error",
+                    "Get Sensor Error",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
@@ -926,8 +967,8 @@ namespace STM32_WL55
          * Mỗi command phải nhận OK mới gửi command sau.
          */
         private async void BtnApply_Click(
-            object sender,
-            EventArgs e)
+    object sender,
+    EventArgs e)
         {
             if (!CheckDeviceReady())
             {
@@ -938,25 +979,17 @@ namespace STM32_WL55
 
             try
             {
-                UpdateRoleByNodeId();
-
                 await ApplyLoRaConfigAsync();
-                await Task.Delay(300);
-                await ApplySensorConfigAsync();
-                await Task.Delay(300);
-                /*
-                 * Đọc lại cấu hình từ STM32 để xác nhận.
-                 */
-                await GetAllConfigAsync();
 
                 Log(
-                    "Apply thành công. Nhấn Save Flash để lưu.");
+                    "Cấu hình LoRa đã được cập nhật vào RAM STM32. " +
+                    "Nhấn Save Flash để lưu vĩnh viễn.");
             }
             catch (Exception ex)
             {
                 MessageBox.Show(
                     ex.Message,
-                    "Apply Config Error",
+                    "Apply LoRa Error",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
@@ -967,8 +1000,8 @@ namespace STM32_WL55
         }
 
         private async void BtnSave_Click(
-            object sender,
-            EventArgs e)
+    object sender,
+    EventArgs e)
         {
             if (!CheckDeviceReady())
             {
@@ -980,37 +1013,20 @@ namespace STM32_WL55
             try
             {
                 /*
-                 * Trước tiên cập nhật cấu hình đang hiển thị
-                 * xuống RAM của STM32.
-                 */
-                UpdateRoleByNodeId();
-
-                await ApplyLoRaConfigAsync();
-
-                await Task.Delay(200);
-
-                await ApplySensorConfigAsync();
-
-                await Task.Delay(200);
-
-                /*
-                 * Sau khi RAM đã đúng mới lưu Flash.
+                 * Không gửi lại LoRa.
+                 * Không gửi lại Sensor.
+                 *
+                 * Chỉ lưu cấu hình hiện đang nằm trong RAM STM32
+                 * xuống Flash.
                  */
                 string response =
                     await SendSimpleCommandAsync(
                         "AT+SAVE",
-                        4000,
+                        10000,
                         true);
 
-                await Task.Delay(200);
-
-                /*
-                 * Đọc lại để xác nhận dữ liệu vừa lưu.
-                 */
-                await GetAllConfigAsync();
-
                 Log(
-                    "Apply + Save Flash thành công: " +
+                    "Save Flash thành công: " +
                     response);
             }
             catch (Exception ex)
@@ -1026,7 +1042,6 @@ namespace STM32_WL55
                 SetBusy(false);
             }
         }
-
         private void BtnGetInput_Click(
             object sender,
             EventArgs e)
@@ -1051,66 +1066,62 @@ namespace STM32_WL55
         {
             UpdateRoleByNodeId();
 
-            string role =
-                GetSelectedStringValue(cmbRole);
+            int nodeId =
+                (int)numNodeId.Value;
+
+            int destinationId =
+                (int)numDestId.Value;
 
             int frequency =
-                GetSelectedIntValue(cmbFreq);
+                GetSelectedIntValue(
+                    cmbFreq);
 
             int bandwidth =
-                GetSelectedIntValue(cmbBw);
+                GetSelectedIntValue(
+                    cmbBw);
 
-            int sf =
-                GetSelectedIntValue(cmbSf);
+            int spreadingFactor =
+                GetSelectedIntValue(
+                    cmbSf);
 
-            int cr =
-                GetSelectedIntValue(cmbCr);
+            int codingRate =
+                GetSelectedIntValue(
+                    cmbCr);
 
-            string[] commands =
-            {
-        "AT+SETID=" +
-            (int)numNodeId.Value,
+            int txPower =
+                (int)numPower.Value;
 
-        "AT+SETDST=" +
-            (int)numDestId.Value,
+            string command =
+                string.Format(
+                    "AT+SETLORA={0},{1},{2},{3},{4},{5},{6}",
+                    nodeId,
+                    destinationId,
+                    frequency,
+                    bandwidth,
+                    spreadingFactor,
+                    codingRate,
+                    txPower);
 
-        "AT+SETROLE=" + role,
-
-        "AT+SETFREQ=" + frequency,
-
-        "AT+SETBW=" + bandwidth,
-
-        "AT+SETSF=" + sf,
-
-        "AT+SETCR=" + cr,
-
-        "AT+SETPWR=" +
-            (int)numPower.Value
-    };
-
-            foreach (string command in commands)
-            {
-                await SendSimpleCommandAsync(
+            string response =
+                await SendSimpleCommandWithRetryAsync(
                     command,
-                    AtTimeoutMs,
-                    true);
+                    4000,
+                    3);
 
-                /*
-                 * Chờ USB-RS485 và STM32 trở về trạng thái nhận
-                 * trước khi gửi lệnh kế tiếp.
-                 */
-                await Task.Delay(150);
-            }
+            Log(
+                "Apply LoRa thành công: " +
+                response);
         }
-
         /* =====================================================
          * APPLY SENSOR
          * ===================================================== */
 
         private async Task ApplySensorConfigAsync()
         {
-            if (dgvSensorList.Rows.Count >
-                MaxSensorCount)
+            int sensorCount =
+                dgvSensorList.Rows.Count;
+
+            if (sensorCount > MaxSensorCount)
             {
                 throw new InvalidOperationException(
                     "Chỉ hỗ trợ tối đa 8 cảm biến.");
@@ -1120,12 +1131,10 @@ namespace STM32_WL55
                 new HashSet<int>();
 
             /*
-             * Cảm biến đã được kiểm tra khi nhấn Add hoặc Update.
-             * Apply chỉ ghi cấu hình xuống STM32,
-             * không kiểm tra cảm biến lại.
+             * Chỉ gửi những sensor đang có trong bảng.
              */
             for (int index = 0;
-                 index < dgvSensorList.Rows.Count;
+                 index < sensorCount;
                  index++)
             {
                 DataGridViewRow row =
@@ -1134,8 +1143,7 @@ namespace STM32_WL55
                 SensorConfigItem sensor =
                     ReadSensorFromRow(row);
 
-                if (!usedSlaveIds.Add(
-                        sensor.SlaveId))
+                if (!usedSlaveIds.Add(sensor.SlaveId))
                 {
                     throw new InvalidOperationException(
                         "Slave ID " +
@@ -1154,46 +1162,38 @@ namespace STM32_WL55
 
                 await SendSimpleCommandAsync(
                     command,
-                    AtTimeoutMs,
+                    3000,
                     true);
 
-                await Task.Delay(150);
+                await Task.Delay(200);
             }
 
             /*
-             * Disable các slot không sử dụng.
+             * Một lệnh duy nhất để tắt toàn bộ slot còn dư.
              */
-            for (int index =
-                     dgvSensorList.Rows.Count;
-                 index < MaxSensorCount;
-                 index++)
-            {
-                string command =
-                    string.Format(
-                        "AT+SENSOR={0},0,1,3,0x0000,1",
-                        index);
+            await SendSimpleCommandAsync(
+                "AT+SENSORCOUNT=" + sensorCount,
+                3000,
+                true);
 
-                await SendSimpleCommandAsync(
-                    command,
-                    AtTimeoutMs,
-                    true);
-
-                await Task.Delay(150);
-            }
+            await Task.Delay(200);
         }
 
         /* =====================================================
          * ADD / UPDATE / REMOVE SENSOR
          * ===================================================== */
 
-        private void BtnSensorAdd_Click(
-            object sender,
-            EventArgs e)
+        private async void BtnSensorAdd_Click(
+    object sender,
+    EventArgs e)
         {
             if (!CheckDeviceReady())
             {
                 return;
             }
+
+            SensorConfigItem sensor;
+            int newIndex;
 
             try
             {
@@ -1204,7 +1204,7 @@ namespace STM32_WL55
                         "Chỉ hỗ trợ tối đa 8 cảm biến.");
                 }
 
-                SensorConfigItem sensor =
+                sensor =
                     ReadSensorFromInputs();
 
                 if (SensorSlaveExists(
@@ -1218,15 +1218,59 @@ namespace STM32_WL55
                 }
 
                 /*
-                 * Add chỉ thêm cấu hình vào danh sách.
-                 * Không kiểm tra cảm biến vật lý tại đây.
+                 * Index mới chính là số dòng hiện tại,
+                 * trước khi thêm dòng.
+                 */
+                newIndex =
+                    dgvSensorList.Rows.Count;
+                sensor.Index =
+                   newIndex;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Add Sensor Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                return;
+            }
+
+            SetBusy(true);
+
+            try
+            {
+                /*
+                 * Gửi đúng một sensor mới xuống RAM STM32.
+                 */
+                string command =
+                    string.Format(
+                        "AT+SENSOR={0},1,{1},{2},0x{3:X4},{4}",
+                        newIndex,
+                        sensor.SlaveId,
+                        sensor.FunctionCode,
+                        sensor.StartRegister,
+                        sensor.RegisterLength);
+
+                await SendSimpleCommandAsync(
+                    command,
+                    4000,
+                    true);
+
+                /*
+                 * Chỉ thêm lên bảng sau khi STM32 đã trả OK.
                  */
                 AddSensorToGrid(sensor);
+                SortSensorGridBySlaveId();
 
                 dgvSensorList.ClearSelection();
 
                 Log(
-                    "Added sensor config: SID=" +
+                    "Đã thêm sensor vào RAM STM32: " +
+                    "IDX=" +
+                    newIndex +
+                    " SID=" +
                     sensor.SlaveId.ToString("D2") +
                     " FC=" +
                     sensor.FunctionCode.ToString("D2") +
@@ -1234,9 +1278,7 @@ namespace STM32_WL55
                     sensor.StartRegister.ToString("X4") +
                     " CNT=" +
                     sensor.RegisterLength.ToString("D4") +
-                    ". Nhấn Apply/Save Flash để lưu.");
-
-                UpdateConnectionControls();
+                    ". Nhấn Save Flash để lưu.");
             }
             catch (Exception ex)
             {
@@ -1246,10 +1288,14 @@ namespace STM32_WL55
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
+            finally
+            {
+                SetBusy(false);
+            }
         }
-        private async void BtnSensorUpdate_Click(
-            object sender,
-            EventArgs e)
+        private async void BtnSensorRemove_Click(
+    object sender,
+    EventArgs e)
         {
             if (!CheckDeviceReady())
             {
@@ -1260,7 +1306,7 @@ namespace STM32_WL55
             {
                 MessageBox.Show(
                     "Hãy chọn một sensor trong bảng.",
-                    "Update Sensor",
+                    "Remove Sensor",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
 
@@ -1270,193 +1316,183 @@ namespace STM32_WL55
             DataGridViewRow selectedRow =
                 dgvSensorList.SelectedRows[0];
 
-            int selectedIndex =
-                selectedRow.Index;
-
-            /*
-             * Cấu hình hiện tại trong bảng:
-             * đây là Slave ID cũ của cảm biến.
-             */
-            SensorConfigItem oldSensor;
-
-            /*
-             * Cấu hình mới người dùng nhập bên trái.
-             */
-            SensorConfigItem newSensor;
+            SensorConfigItem selectedSensor;
 
             try
             {
-                oldSensor =
-                    ReadSensorFromRow(
-                        selectedRow);
-
-                newSensor =
-                    ReadSensorFromInputs();
-
                 /*
-                 * Kiểm tra ID mới có bị trùng
-                 * với một dòng khác hay không.
+                 * selectedSensor.Index là slot thật trong STM32.
+                 * Không nhất thiết giống selectedRow.Index
+                 * vì bảng đang được sort theo Slave ID.
                  */
-                if (SensorSlaveExists(
-                        newSensor.SlaveId,
-                        selectedIndex))
-                {
-                    throw new InvalidOperationException(
-                        "Slave ID " +
-                        newSensor.SlaveId.ToString("D2") +
-                        " đã được dùng bởi cảm biến khác.");
-                }
+                selectedSensor =
+                    ReadSensorFromRow(selectedRow);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(
                     ex.Message,
-                    "Update Sensor Error",
+                    "Remove Sensor Error",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
 
                 return;
             }
 
-            /*
-             * Nếu Slave ID thay đổi thì phải đổi
-             * ID thật bên trong cảm biến trước.
-             */
-            if (oldSensor.SlaveId !=
-                newSensor.SlaveId)
-            {
-                DialogResult confirm =
-                    MessageBox.Show(
-                        "Đổi Slave ID thật của cảm biến:\r\n\r\n" +
-                        "ID cũ: " +
-                        oldSensor.SlaveId.ToString("D2") +
-                        "\r\n" +
-                        "ID mới: " +
-                        newSensor.SlaveId.ToString("D2") +
-                        "\r\n\r\n" +
-                        "Chỉ được nối một cảm biến trên bus " +
-                        "trong lúc đổi địa chỉ.\r\n\r\n" +
-                        "Tiếp tục?",
-                        "Change Physical Sensor ID",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Warning);
+            DialogResult confirm =
+                MessageBox.Show(
+                    "Xóa sensor này khỏi STM32?\r\n\r\n" +
+                    "Slave ID: " +
+                    selectedSensor.SlaveId.ToString("D2") +
+                    "\r\n" +
+                    "STM32 Index: " +
+                    selectedSensor.Index +
+                    "\r\n\r\n" +
+                    "Sau khi xóa, nhấn Save Flash để lưu vĩnh viễn.",
+                    "Confirm Remove Sensor",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
 
-                if (confirm !=
-                    DialogResult.Yes)
-                {
-                    return;
-                }
+            if (confirm != DialogResult.Yes)
+            {
+                return;
             }
 
             SetBusy(true);
 
             try
             {
+                int deletedStm32Index =
+                    selectedSensor.Index;
+
                 /*
-                 * Chỉ gửi lệnh đổi ID khi ID cũ và mới khác nhau.
+                 * Chỉ gửi đúng một command xuống STM32.
                  */
-                if (oldSensor.SlaveId !=
-                    newSensor.SlaveId)
+                string response =
+                    await SendSimpleCommandAsync(
+                        "AT+DELSENSOR=" +
+                        deletedStm32Index,
+                        4000,
+                        true);
+
+                /*
+                 * STM32 đã trả OK thì mới xóa khỏi bảng.
+                 */
+                dgvSensorList.Rows.Remove(
+                    selectedRow);
+
+                /*
+                 * Firmware đã dịch các slot phía sau lên một vị trí.
+                 * Cập nhật lại IDX thật đang lưu trong row.Tag.
+                 */
+                foreach (DataGridViewRow row
+                         in dgvSensorList.Rows)
                 {
-                    string command =
-                        string.Format(
-                            "AT+CHANGESID={0},{1}",
-                            oldSensor.SlaveId,
-                            newSensor.SlaveId);
+                    if (row.Tag == null)
+                    {
+                        continue;
+                    }
 
-                    string response =
-                        await SendSimpleCommandAsync(
-                            command,
-                            6000,
-                            true);
+                    int currentIndex =
+                        Convert.ToInt32(row.Tag);
 
-                    Log(
-                        "Đã đổi Slave ID thật của cảm biến: " +
-                        oldSensor.SlaveId.ToString("D2") +
-                        " -> " +
-                        newSensor.SlaveId.ToString("D2") +
-                        ". STM32 response: " +
-                        response);
-
-                    /*
-                     * Chờ bus ổn định sau lệnh cấu hình.
-                     */
-                    await Task.Delay(300);
+                    if (currentIndex >
+                        deletedStm32Index)
+                    {
+                        row.Tag =
+                            currentIndex - 1;
+                    }
                 }
 
-                /*
-                 * Chỉ cập nhật bảng sau khi:
-                 *
-                 * - Không đổi Slave ID; hoặc
-                 * - Firmware xác nhận cảm biến thật đã đổi ID.
-                 */
-                WriteSensorToRow(
-                    selectedRow,
-                    newSensor);
-
-                dgvSensorList.ClearSelection();
-
-                selectedRow.Selected = true;
+                SortSensorGridBySlaveId();
 
                 Log(
-                    "Updated sensor config: " +
+                    "Đã xóa sensor khỏi RAM STM32: " +
                     "SID=" +
-                    newSensor.SlaveId.ToString("D2") +
-                    " FC=" +
-                    newSensor.FunctionCode.ToString("D2") +
-                    " REG=0x" +
-                    newSensor.StartRegister.ToString("X4") +
-                    " CNT=" +
-                    newSensor.RegisterLength.ToString("D4") +
-                    ". Nhấn Apply và Save Flash để lưu cấu hình STM32.");
+                    selectedSensor.SlaveId.ToString("D2") +
+                    " IDX=" +
+                    deletedStm32Index +
+                    ". Response: " +
+                    response +
+                    ". Nhấn Save Flash để lưu.");
+
+                UpdateConnectionControls();
             }
             catch (Exception ex)
             {
-                /*
-                 * Khi đổi ID thất bại, không sửa dòng trên bảng.
-                 */
                 MessageBox.Show(
                     ex.Message,
-                    "Update Sensor Error",
+                    "Remove Sensor Error",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
+
+                /*
+                 * Đồng bộ lại bảng theo dữ liệu thật trong STM32.
+                 */
+                try
+                {
+                    await GetSensorsAsync();
+                }
+                catch
+                {
+                }
             }
             finally
             {
                 SetBusy(false);
             }
         }
-
-        private void BtnSensorRemove_Click(
-            object sender,
-            EventArgs e)
+        private async Task<string>
+    SendSimpleCommandWithRetryAsync(
+        string command,
+        int timeoutMs,
+        int retryCount)
         {
-            if (!CheckDeviceReady())
+            Exception lastError = null;
+
+            for (int attempt = 1;
+                 attempt <= retryCount;
+                 attempt++)
             {
-                return;
+                try
+                {
+                    return await SendSimpleCommandAsync(
+                        command,
+                        timeoutMs,
+                        true);
+                }
+                catch (TimeoutException ex)
+                {
+                    lastError = ex;
+
+                    Log(
+                        "Không nhận phản hồi " +
+                        command +
+                        ", thử lại " +
+                        attempt +
+                        "/" +
+                        retryCount +
+                        ".");
+
+                    if (attempt >= retryCount)
+                    {
+                        break;
+                    }
+
+                    /*
+                     * Chờ STM32 và bộ chuyển USB-RS485 ổn định.
+                     */
+                    await Task.Delay(500);
+                }
             }
 
-            if (dgvSensorList.SelectedRows.Count == 0)
-            {
-                MessageBox.Show(
-                    "Hãy chọn một sensor trong bảng.");
-
-                return;
-            }
-
-            int index =
-                dgvSensorList.SelectedRows[0].Index;
-
-            dgvSensorList.Rows.RemoveAt(index);
-
-            Log(
-                "Removed sensor row " +
-                index +
-                ". Nhấn Apply và Save Flash để cập nhật STM32.");
-
-            UpdateConnectionControls();
+            throw new TimeoutException(
+                "Không nhận được phản hồi sau " +
+                retryCount +
+                " lần:\r\n" +
+                command,
+                lastError);
         }
-
         private void DgvSensorList_KeyDown(
             object sender,
             KeyEventArgs e)
@@ -1720,10 +1756,6 @@ namespace STM32_WL55
 
                 await Task.Delay(200);
 
-                /*
-                 * Đọc lại cấu hình để xác nhận.
-                 */
-                await GetAllConfigAsync();
 
                 Log(
                     "Change Slave ID + Save Flash thành công: " +
@@ -1911,7 +1943,7 @@ namespace STM32_WL55
             }
         }
 
-        private async Task GetAllConfigAsync()
+        private async Task GetLoRaConfigAsync()
         {
             if (!serial.IsOpen ||
                 !stm32Ready)
@@ -1928,7 +1960,6 @@ namespace STM32_WL55
                         .RunContinuationsAsynchronously);
 
             pendingGetConfig = completion;
-            receivedConfigBuffer.Clear();
 
             try
             {
@@ -1949,8 +1980,6 @@ namespace STM32_WL55
                 }
 
                 await completion.Task;
-
-                ApplyReceivedConfigToGrid();
             }
             finally
             {
@@ -1964,7 +1993,67 @@ namespace STM32_WL55
                 commandGate.Release();
             }
         }
+        private async Task GetSensorsAsync()
+        {
+            if (!serial.IsOpen ||
+                !stm32Ready)
+            {
+                throw new InvalidOperationException(
+                    "STM32 chưa sẵn sàng.");
+            }
 
+            await commandGate.WaitAsync();
+
+            TaskCompletionSource<bool> completion =
+                new TaskCompletionSource<bool>(
+                    TaskCreationOptions
+                        .RunContinuationsAsynchronously);
+
+            pendingGetSensors = completion;
+
+            /*
+             * Xóa buffer tạm trước khi nhận danh sách mới.
+             * Chưa xóa bảng ngay để tránh bảng bị mất nếu timeout.
+             */
+            receivedConfigBuffer.Clear();
+
+            try
+            {
+                SendRawCommand("AT+GETSENSOR");
+
+                Task timeoutTask =
+                    Task.Delay(GetSensorsTimeoutMs);
+
+                Task completed =
+                    await Task.WhenAny(
+                        completion.Task,
+                        timeoutTask);
+
+                if (completed != completion.Task)
+                {
+                    throw new TimeoutException(
+                        "Không nhận được END từ AT+GETSENSOR.");
+                }
+
+                await completion.Task;
+
+                /*
+                 * Chỉ cập nhật bảng sau khi đã nhận đủ SENSOR...END.
+                 */
+                ApplyReceivedConfigToGrid();
+            }
+            finally
+            {
+                if (ReferenceEquals(
+                        pendingGetSensors,
+                        completion))
+                {
+                    pendingGetSensors = null;
+                }
+
+                commandGate.Release();
+            }
+        }
         private void SendRawCommand(
             string command)
         {
@@ -2183,10 +2272,17 @@ namespace STM32_WL55
             }
 
             if (line.StartsWith(
-                    "SENSOR ",
-                    StringComparison.OrdinalIgnoreCase))
+        "SENSOR ",
+        StringComparison.OrdinalIgnoreCase))
             {
-                ParseSensorConfigLine(line);
+                /*
+                 * Chỉ nhận SENSOR khi đang thực hiện GETSENSOR.
+                 */
+                if (pendingGetSensors != null)
+                {
+                    ParseSensorConfigLine(line);
+                }
+
                 return;
             }
 
@@ -2194,7 +2290,14 @@ namespace STM32_WL55
                     "CFG",
                     StringComparison.OrdinalIgnoreCase))
             {
-                ParseConfig(line);
+                /*
+                 * Chỉ nhận CFG khi đang thực hiện GETCFG.
+                 */
+                if (pendingGetConfig != null)
+                {
+                    ParseConfig(line);
+                }
+
                 return;
             }
 
@@ -2202,7 +2305,16 @@ namespace STM32_WL55
                     "END",
                     StringComparison.OrdinalIgnoreCase))
             {
-                if (pendingGetConfig != null)
+                /*
+                 * Mỗi thời điểm chỉ có một command được chạy
+                 * nhờ commandGate.
+                 */
+                if (pendingGetSensors != null)
+                {
+                    pendingGetSensors
+                        .TrySetResult(true);
+                }
+                else if (pendingGetConfig != null)
                 {
                     pendingGetConfig
                         .TrySetResult(true);
@@ -2236,6 +2348,11 @@ namespace STM32_WL55
                     pendingSensorTest
                         .TrySetException(error);
                 }
+                else if (pendingGetSensors != null)
+                {
+                    pendingGetSensors
+                        .TrySetException(error);
+                }
                 else if (pendingGetConfig != null)
                 {
                     pendingGetConfig
@@ -2260,7 +2377,7 @@ namespace STM32_WL55
         private void ParseSensorConfigLine(
             string line)
         {
-            if (pendingGetConfig == null)
+            if (pendingGetSensors == null)
             {
                 return;
             }
@@ -2341,6 +2458,15 @@ namespace STM32_WL55
                     SensorConfigItem left,
                     SensorConfigItem right)
                 {
+                    int compare =
+                        left.SlaveId.CompareTo(
+                            right.SlaveId);
+
+                    if (compare != 0)
+                    {
+                        return compare;
+                    }
+
                     return left.Index.CompareTo(
                         right.Index);
                 });
@@ -2354,8 +2480,9 @@ namespace STM32_WL55
             }
 
             dgvSensorList.ClearSelection();
-        }
 
+            UpdateConnectionControls();
+        }
         private Dictionary<string, string>
             ParseKeyValues(
                 string line)
@@ -2516,52 +2643,69 @@ namespace STM32_WL55
             return sensor;
         }
 
-        private SensorConfigItem
-            ReadSensorFromRow(
-                DataGridViewRow row)
+        private void SortSensorGridBySlaveId()
+        {
+            if (dgvSensorList.Rows.Count <= 1)
+            {
+                return;
+            }
+
+            dgvSensorList.Sort(
+                dgvSensorList.Columns["colSlaveId"],
+                System.ComponentModel
+                    .ListSortDirection
+                    .Ascending);
+
+            dgvSensorList.ClearSelection();
+
+            UpdateConnectionControls();
+        }
+        private SensorConfigItem ReadSensorFromRow(
+    DataGridViewRow row)
         {
             SensorConfigItem sensor =
                 new SensorConfigItem();
 
-            sensor.Index = row.Index;
+            sensor.Index =
+                row.Tag != null
+                    ? Convert.ToInt32(row.Tag)
+                    : row.Index;
 
             sensor.SlaveId =
                 Convert.ToInt32(
-                    row.Cells[
-                        "colSlaveId"].Value);
+                    row.Cells["colSlaveId"].Value);
 
             sensor.FunctionCode =
                 Convert.ToInt32(
-                    row.Cells[
-                        "colFunctionCode"].Value);
+                    row.Cells["colFunctionCode"].Value);
 
             sensor.StartRegister =
                 ParseRegisterAddress(
                     Convert.ToString(
-                        row.Cells[
-                            "colStartRegister"].Value));
+                        row.Cells["colStartRegister"].Value));
 
             sensor.RegisterLength =
                 Convert.ToInt32(
-                    row.Cells[
-                        "colRegisterLength"].Value);
+                    row.Cells["colRegisterLength"].Value);
 
             ValidateSensorValues(sensor);
 
             return sensor;
         }
-
         private void AddSensorToGrid(
-            SensorConfigItem sensor)
+    SensorConfigItem sensor)
         {
-            dgvSensorList.Rows.Add(
-                sensor.SlaveId.ToString("D2"),
-                sensor.FunctionCode.ToString("D2"),
-                "0x" +
-                    sensor.StartRegister.ToString("X4"),
-                sensor.RegisterLength.ToString("D4"));
-        }
+            int rowIndex =
+                dgvSensorList.Rows.Add(
+                    sensor.SlaveId.ToString("D2"),
+                    sensor.FunctionCode.ToString("D2"),
+                    "0x" +
+                        sensor.StartRegister.ToString("X4"),
+                    sensor.RegisterLength.ToString("D4"));
 
+            dgvSensorList.Rows[rowIndex].Tag =
+                sensor.Index;
+        }
         private void WriteSensorToRow(
             DataGridViewRow row,
             SensorConfigItem sensor)
@@ -2763,7 +2907,7 @@ namespace STM32_WL55
          * ===================================================== */
 
         private void CancelPendingOperations(
-            string reason)
+    string reason)
         {
             Exception error =
                 new InvalidOperationException(reason);
@@ -2777,9 +2921,13 @@ namespace STM32_WL55
             TaskCompletionSource<bool> config =
                 pendingGetConfig;
 
+            TaskCompletionSource<bool> sensors =
+                pendingGetSensors;
+
             pendingSimpleCommand = null;
             pendingSensorTest = null;
             pendingGetConfig = null;
+            pendingGetSensors = null;
 
             if (simple != null)
             {
@@ -2794,6 +2942,11 @@ namespace STM32_WL55
             if (config != null)
             {
                 config.TrySetException(error);
+            }
+
+            if (sensors != null)
+            {
+                sensors.TrySetException(error);
             }
         }
 
@@ -2929,6 +3082,11 @@ namespace STM32_WL55
         }
 
         private void cmbPort_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnChangeSlaveId_Click_1(object sender, EventArgs e)
         {
 
         }

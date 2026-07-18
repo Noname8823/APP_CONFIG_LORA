@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.btnConnect = new System.Windows.Forms.Button();
             this.btnRefresh = new System.Windows.Forms.Button();
@@ -62,8 +62,10 @@
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.txtLog = new System.Windows.Forms.TextBox();
             this.grpSensorConfig = new System.Windows.Forms.GroupBox();
+            this.btnChangeSlaveId = new System.Windows.Forms.Button();
+            this.cmbChangeSlaveId = new System.Windows.Forms.ComboBox();
+            this.label14 = new System.Windows.Forms.Label();
             this.btnSensorRemove = new System.Windows.Forms.Button();
-            this.btnSensorUpdate = new System.Windows.Forms.Button();
             this.btnSensorAdd = new System.Windows.Forms.Button();
             this.cmbRegisterLength = new System.Windows.Forms.ComboBox();
             this.label13 = new System.Windows.Forms.Label();
@@ -79,9 +81,7 @@
             this.colFunctionCode = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colStartRegister = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colRegisterLength = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.label14 = new System.Windows.Forms.Label();
-            this.cmbChangeSlaveId = new System.Windows.Forms.ComboBox();
-            this.btnChangeSlaveId = new System.Windows.Forms.Button();
+            this.btnGetSensor = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numPower)).BeginInit();
@@ -340,7 +340,7 @@
             // 
             // btnSave
             // 
-            this.btnSave.Location = new System.Drawing.Point(325, 28);
+            this.btnSave.Location = new System.Drawing.Point(409, 28);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(75, 23);
             this.btnSave.TabIndex = 3;
@@ -350,6 +350,7 @@
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.btnGetSensor);
             this.groupBox3.Controls.Add(this.btnGetInput);
             this.groupBox3.Controls.Add(this.btnSave);
             this.groupBox3.Controls.Add(this.btnGetConfig);
@@ -415,7 +416,6 @@
             this.grpSensorConfig.Controls.Add(this.cmbChangeSlaveId);
             this.grpSensorConfig.Controls.Add(this.label14);
             this.grpSensorConfig.Controls.Add(this.btnSensorRemove);
-            this.grpSensorConfig.Controls.Add(this.btnSensorUpdate);
             this.grpSensorConfig.Controls.Add(this.btnSensorAdd);
             this.grpSensorConfig.Controls.Add(this.cmbRegisterLength);
             this.grpSensorConfig.Controls.Add(this.label13);
@@ -433,23 +433,42 @@
             this.grpSensorConfig.Text = "RS485 Sensor Config";
             this.grpSensorConfig.Enter += new System.EventHandler(this.groupBox5_Enter);
             // 
+            // btnChangeSlaveId
+            // 
+            this.btnChangeSlaveId.Location = new System.Drawing.Point(177, 219);
+            this.btnChangeSlaveId.Name = "btnChangeSlaveId";
+            this.btnChangeSlaveId.Size = new System.Drawing.Size(81, 23);
+            this.btnChangeSlaveId.TabIndex = 6;
+            this.btnChangeSlaveId.Text = "Change ID";
+            this.btnChangeSlaveId.UseVisualStyleBackColor = true;
+            this.btnChangeSlaveId.Click += new System.EventHandler(this.btnChangeSlaveId_Click_1);
+            // 
+            // cmbChangeSlaveId
+            // 
+            this.cmbChangeSlaveId.FormattingEnabled = true;
+            this.cmbChangeSlaveId.Location = new System.Drawing.Point(115, 166);
+            this.cmbChangeSlaveId.Name = "cmbChangeSlaveId";
+            this.cmbChangeSlaveId.Size = new System.Drawing.Size(121, 21);
+            this.cmbChangeSlaveId.TabIndex = 6;
+            // 
+            // label14
+            // 
+            this.label14.AutoSize = true;
+            this.label14.Location = new System.Drawing.Point(21, 169);
+            this.label14.Name = "label14";
+            this.label14.Size = new System.Drawing.Size(88, 13);
+            this.label14.TabIndex = 6;
+            this.label14.Text = "Change Slave ID";
+            this.label14.Click += new System.EventHandler(this.label14_Click_1);
+            // 
             // btnSensorRemove
             // 
-            this.btnSensorRemove.Location = new System.Drawing.Point(198, 219);
+            this.btnSensorRemove.Location = new System.Drawing.Point(94, 219);
             this.btnSensorRemove.Name = "btnSensorRemove";
             this.btnSensorRemove.Size = new System.Drawing.Size(75, 23);
             this.btnSensorRemove.TabIndex = 6;
             this.btnSensorRemove.Text = "Remove";
             this.btnSensorRemove.UseVisualStyleBackColor = true;
-            // 
-            // btnSensorUpdate
-            // 
-            this.btnSensorUpdate.Location = new System.Drawing.Point(104, 219);
-            this.btnSensorUpdate.Name = "btnSensorUpdate";
-            this.btnSensorUpdate.Size = new System.Drawing.Size(75, 23);
-            this.btnSensorUpdate.TabIndex = 6;
-            this.btnSensorUpdate.Text = "Update";
-            this.btnSensorUpdate.UseVisualStyleBackColor = true;
             // 
             // btnSensorAdd
             // 
@@ -544,14 +563,14 @@
             // 
             this.dgvSensorList.AllowUserToAddRows = false;
             this.dgvSensorList.AllowUserToDeleteRows = false;
-            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle2.BackColor = System.Drawing.Color.Black;
-            dataGridViewCellStyle2.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F);
-            dataGridViewCellStyle2.ForeColor = System.Drawing.Color.White;
-            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dgvSensorList.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle2;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle1.BackColor = System.Drawing.Color.Black;
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F);
+            dataGridViewCellStyle1.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvSensorList.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
             this.dgvSensorList.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgvSensorList.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.colSlaveId,
@@ -595,32 +614,14 @@
             this.colRegisterLength.ReadOnly = true;
             this.colRegisterLength.Width = 120;
             // 
-            // label14
+            // btnGetSensor
             // 
-            this.label14.AutoSize = true;
-            this.label14.Location = new System.Drawing.Point(21, 169);
-            this.label14.Name = "label14";
-            this.label14.Size = new System.Drawing.Size(88, 13);
-            this.label14.TabIndex = 6;
-            this.label14.Text = "Change Slave ID";
-            this.label14.Click += new System.EventHandler(this.label14_Click_1);
-            // 
-            // cmbChangeSlaveId
-            // 
-            this.cmbChangeSlaveId.FormattingEnabled = true;
-            this.cmbChangeSlaveId.Location = new System.Drawing.Point(115, 166);
-            this.cmbChangeSlaveId.Name = "cmbChangeSlaveId";
-            this.cmbChangeSlaveId.Size = new System.Drawing.Size(121, 21);
-            this.cmbChangeSlaveId.TabIndex = 6;
-            // 
-            // btnChangeSlaveId
-            // 
-            this.btnChangeSlaveId.Location = new System.Drawing.Point(13, 248);
-            this.btnChangeSlaveId.Name = "btnChangeSlaveId";
-            this.btnChangeSlaveId.Size = new System.Drawing.Size(260, 23);
-            this.btnChangeSlaveId.TabIndex = 6;
-            this.btnChangeSlaveId.Text = "Change Slave ID";
-            this.btnChangeSlaveId.UseVisualStyleBackColor = true;
+            this.btnGetSensor.Location = new System.Drawing.Point(310, 28);
+            this.btnGetSensor.Name = "btnGetSensor";
+            this.btnGetSensor.Size = new System.Drawing.Size(75, 23);
+            this.btnGetSensor.TabIndex = 5;
+            this.btnGetSensor.Text = "Get Sensor";
+            this.btnGetSensor.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
@@ -705,10 +706,10 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn colRegisterLength;
         private System.Windows.Forms.Button btnSensorAdd;
         private System.Windows.Forms.Button btnSensorRemove;
-        private System.Windows.Forms.Button btnSensorUpdate;
         private System.Windows.Forms.Label label14;
         private System.Windows.Forms.Button btnChangeSlaveId;
         private System.Windows.Forms.ComboBox cmbChangeSlaveId;
+        private System.Windows.Forms.Button btnGetSensor;
     }
 }
 
