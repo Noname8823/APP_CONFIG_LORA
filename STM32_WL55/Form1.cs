@@ -120,6 +120,10 @@ namespace STM32_WL55
             btnSensorRemove.Click -= BtnSensorRemove_Click;
             btnSensorRemove.Click += BtnSensorRemove_Click;
 
+            btnChangeSlaveId.Click -= BtnChangeSlaveId_Click;
+
+            btnChangeSlaveId.Click += BtnChangeSlaveId_Click;
+
             dgvSensorList.CellDoubleClick -=
                 DgvSensorList_CellDoubleClick;
 
@@ -202,7 +206,6 @@ namespace STM32_WL55
                 new OptionItem(
                     "470 MHz",
                     470000000));
-
             cmbFreq.Items.Add(
                 new OptionItem(
                     "868 MHz",
@@ -355,6 +358,26 @@ namespace STM32_WL55
                 ComboBoxStyle.DropDownList;
 
             cmbRegisterLength.SelectedIndex = 0;
+                        /*
+             * Slave ID mới dùng cho chức năng
+             * đổi địa chỉ thật của cảm biến.
+             */
+            cmbChangeSlaveId.Items.Clear();
+
+            for (int id = 1;
+                 id <= MaxSensorCount;
+                 id++)
+            {
+                cmbChangeSlaveId.Items.Add(
+                    new OptionItem(
+                        id.ToString("D2"),
+                        id));
+            }
+
+            cmbChangeSlaveId.DropDownStyle =
+                ComboBoxStyle.DropDownList;
+
+            cmbChangeSlaveId.SelectedIndex = 0;
         }
         /* =====================================================
          * SENSOR GRID
@@ -513,6 +536,14 @@ namespace STM32_WL55
 
             bool rowSelected =
                 dgvSensorList.SelectedRows.Count > 0;
+
+            btnChangeSlaveId.Enabled =
+                ready &&
+                rowSelected;
+
+            cmbChangeSlaveId.Enabled =
+                ready &&
+                rowSelected;
 
             btnSensorUpdate.Enabled =
                 ready &&
@@ -1216,10 +1247,9 @@ namespace STM32_WL55
                     MessageBoxIcon.Error);
             }
         }
-
-        private void BtnSensorUpdate_Click(
-    object sender,
-    EventArgs e)
+        private async void BtnSensorUpdate_Click(
+            object sender,
+            EventArgs e)
         {
             if (!CheckDeviceReady())
             {
@@ -1237,49 +1267,45 @@ namespace STM32_WL55
                 return;
             }
 
+            DataGridViewRow selectedRow =
+                dgvSensorList.SelectedRows[0];
+
+            int selectedIndex =
+                selectedRow.Index;
+
+            /*
+             * Cấu hình hiện tại trong bảng:
+             * đây là Slave ID cũ của cảm biến.
+             */
+            SensorConfigItem oldSensor;
+
+            /*
+             * Cấu hình mới người dùng nhập bên trái.
+             */
+            SensorConfigItem newSensor;
+
             try
             {
-                int selectedIndex =
-                    dgvSensorList.SelectedRows[0].Index;
+                oldSensor =
+                    ReadSensorFromRow(
+                        selectedRow);
 
-                SensorConfigItem sensor =
+                newSensor =
                     ReadSensorFromInputs();
 
+                /*
+                 * Kiểm tra ID mới có bị trùng
+                 * với một dòng khác hay không.
+                 */
                 if (SensorSlaveExists(
-                        sensor.SlaveId,
+                        newSensor.SlaveId,
                         selectedIndex))
                 {
                     throw new InvalidOperationException(
                         "Slave ID " +
-                        sensor.SlaveId.ToString("D2") +
-                        " đã được dùng bởi dòng khác.");
+                        newSensor.SlaveId.ToString("D2") +
+                        " đã được dùng bởi cảm biến khác.");
                 }
-
-                /*
-                 * Chỉ cập nhật bảng.
-                 * Không gửi AT+TESTSENSOR.
-                 */
-                WriteSensorToRow(
-                    dgvSensorList.Rows[selectedIndex],
-                    sensor);
-
-                dgvSensorList.ClearSelection();
-
-                dgvSensorList.Rows[selectedIndex]
-                    .Selected = true;
-
-                Log(
-                    "UPDATE_LOCAL_ONLY_V2: SID=" +
-                    sensor.SlaveId.ToString("D2") +
-                    " FC=" +
-                    sensor.FunctionCode.ToString("D2") +
-                    " REG=0x" +
-                    sensor.StartRegister.ToString("X4") +
-                    " CNT=" +
-                    sensor.RegisterLength.ToString("D4") +
-                    ". Nhấn Apply và Save Flash để lưu.");
-
-                UpdateConnectionControls();
             }
             catch (Exception ex)
             {
@@ -1288,6 +1314,116 @@ namespace STM32_WL55
                     "Update Sensor Error",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
+
+                return;
+            }
+
+            /*
+             * Nếu Slave ID thay đổi thì phải đổi
+             * ID thật bên trong cảm biến trước.
+             */
+            if (oldSensor.SlaveId !=
+                newSensor.SlaveId)
+            {
+                DialogResult confirm =
+                    MessageBox.Show(
+                        "Đổi Slave ID thật của cảm biến:\r\n\r\n" +
+                        "ID cũ: " +
+                        oldSensor.SlaveId.ToString("D2") +
+                        "\r\n" +
+                        "ID mới: " +
+                        newSensor.SlaveId.ToString("D2") +
+                        "\r\n\r\n" +
+                        "Chỉ được nối một cảm biến trên bus " +
+                        "trong lúc đổi địa chỉ.\r\n\r\n" +
+                        "Tiếp tục?",
+                        "Change Physical Sensor ID",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning);
+
+                if (confirm !=
+                    DialogResult.Yes)
+                {
+                    return;
+                }
+            }
+
+            SetBusy(true);
+
+            try
+            {
+                /*
+                 * Chỉ gửi lệnh đổi ID khi ID cũ và mới khác nhau.
+                 */
+                if (oldSensor.SlaveId !=
+                    newSensor.SlaveId)
+                {
+                    string command =
+                        string.Format(
+                            "AT+CHANGESID={0},{1}",
+                            oldSensor.SlaveId,
+                            newSensor.SlaveId);
+
+                    string response =
+                        await SendSimpleCommandAsync(
+                            command,
+                            6000,
+                            true);
+
+                    Log(
+                        "Đã đổi Slave ID thật của cảm biến: " +
+                        oldSensor.SlaveId.ToString("D2") +
+                        " -> " +
+                        newSensor.SlaveId.ToString("D2") +
+                        ". STM32 response: " +
+                        response);
+
+                    /*
+                     * Chờ bus ổn định sau lệnh cấu hình.
+                     */
+                    await Task.Delay(300);
+                }
+
+                /*
+                 * Chỉ cập nhật bảng sau khi:
+                 *
+                 * - Không đổi Slave ID; hoặc
+                 * - Firmware xác nhận cảm biến thật đã đổi ID.
+                 */
+                WriteSensorToRow(
+                    selectedRow,
+                    newSensor);
+
+                dgvSensorList.ClearSelection();
+
+                selectedRow.Selected = true;
+
+                Log(
+                    "Updated sensor config: " +
+                    "SID=" +
+                    newSensor.SlaveId.ToString("D2") +
+                    " FC=" +
+                    newSensor.FunctionCode.ToString("D2") +
+                    " REG=0x" +
+                    newSensor.StartRegister.ToString("X4") +
+                    " CNT=" +
+                    newSensor.RegisterLength.ToString("D4") +
+                    ". Nhấn Apply và Save Flash để lưu cấu hình STM32.");
+            }
+            catch (Exception ex)
+            {
+                /*
+                 * Khi đổi ID thất bại, không sửa dòng trên bảng.
+                 */
+                MessageBox.Show(
+                    ex.Message,
+                    "Update Sensor Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            finally
+            {
+                SetBusy(false);
             }
         }
 
@@ -1336,9 +1472,54 @@ namespace STM32_WL55
         }
 
         private void DgvSensorList_SelectionChanged(
-            object sender,
-            EventArgs e)
+    object sender,
+    EventArgs e)
         {
+            if (dgvSensorList.SelectedRows.Count > 0)
+            {
+                try
+                {
+                    DataGridViewRow row =
+                        dgvSensorList.SelectedRows[0];
+
+                    SensorConfigItem sensor =
+                        ReadSensorFromRow(row);
+
+                    /*
+                     * Nạp cấu hình sensor đang chọn.
+                     */
+                    SelectComboByValue(
+                        cmbSensorSlave,
+                        sensor.SlaveId);
+
+                    SelectComboByValue(
+                        cmbSensorFunction,
+                        sensor.FunctionCode);
+
+                    cmbStartRegister.Text =
+                        "0x" +
+                        sensor.StartRegister.ToString("X4");
+
+                    SelectComboByValue(
+                        cmbRegisterLength,
+                        sensor.RegisterLength);
+
+                    /*
+                     * Mặc định ID mới bằng ID hiện tại.
+                     * Người dùng sẽ chọn ID khác.
+                     */
+                    SelectComboByValue(
+                        cmbChangeSlaveId,
+                        sensor.SlaveId);
+                }
+                catch (Exception ex)
+                {
+                    Log(
+                        "Không đọc được sensor đang chọn: " +
+                        ex.Message);
+                }
+            }
+
             UpdateConnectionControls();
         }
 
@@ -1372,6 +1553,222 @@ namespace STM32_WL55
                 sensor.RegisterLength);
         }
 
+        private async void BtnChangeSlaveId_Click(
+            object sender,
+            EventArgs e)
+        {
+            if (!CheckDeviceReady())
+            {
+                return;
+            }
+
+            if (dgvSensorList.SelectedRows.Count == 0)
+            {
+                MessageBox.Show(
+                    "Hãy chọn cảm biến cần đổi Slave ID.",
+                    "Change Slave ID",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            DataGridViewRow selectedRow =
+                dgvSensorList.SelectedRows[0];
+
+            int selectedIndex =
+                selectedRow.Index;
+
+            SensorConfigItem sensor;
+
+            int oldSlaveId;
+            int newSlaveId;
+
+            try
+            {
+                sensor =
+                    ReadSensorFromRow(selectedRow);
+
+                oldSlaveId =
+                    sensor.SlaveId;
+
+                newSlaveId =
+                    GetSelectedIntValue(
+                        cmbChangeSlaveId);
+
+                if (oldSlaveId == newSlaveId)
+                {
+                    throw new InvalidOperationException(
+                        "Slave ID mới đang giống Slave ID hiện tại.");
+                }
+
+                /*
+                 * Không cho đổi sang ID đã tồn tại
+                 * trong một dòng sensor khác.
+                 */
+                if (SensorSlaveExists(
+                        newSlaveId,
+                        selectedIndex))
+                {
+                    throw new InvalidOperationException(
+                        "Slave ID " +
+                        newSlaveId.ToString("D2") +
+                        " đã được cảm biến khác sử dụng.");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Change Slave ID",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            DialogResult confirm =
+                MessageBox.Show(
+                    "Sắp đổi Slave ID thật bên trong cảm biến.\r\n\r\n" +
+                    "ID hiện tại: " +
+                    oldSlaveId.ToString("D2") +
+                    "\r\n" +
+                    "ID mới: " +
+                    newSlaveId.ToString("D2") +
+                    "\r\n\r\n" +
+                    "Chỉ được nối một cảm biến trên bus " +
+                    "trong lúc đổi địa chỉ.\r\n\r\n" +
+                    "Tiếp tục?",
+                    "Confirm Change Slave ID",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+
+            if (confirm != DialogResult.Yes)
+            {
+                return;
+            }
+
+            SetBusy(true);
+
+            bool physicalIdChanged = false;
+
+            try
+            {
+                string command =
+                    string.Format(
+                        "AT+CHANGESID={0},{1}",
+                        oldSlaveId,
+                        newSlaveId);
+
+                /*
+                 * Firmware sẽ:
+                 * 1. Gửi OLD_ID 10 NEW_ID CRC
+                 * 2. Kiểm tra cảm biến bằng ID mới
+                 * 3. Trả OK hoặc ERR
+                 */
+                string response =
+                    await SendSimpleCommandAsync(
+                        command,
+                        8000,
+                        true);
+
+                physicalIdChanged = true;
+
+                Log(
+                    "Đã đổi ID thật của cảm biến: " +
+                    oldSlaveId.ToString("D2") +
+                    " -> " +
+                    newSlaveId.ToString("D2") +
+                    ". Response: " +
+                    response);
+
+                /*
+                 * Cập nhật ID trong dòng cấu hình.
+                 */
+                sensor.SlaveId =
+                    newSlaveId;
+
+                WriteSensorToRow(
+                    selectedRow,
+                    sensor);
+
+                SelectComboByValue(
+                    cmbSensorSlave,
+                    newSlaveId);
+
+                SelectComboByValue(
+                    cmbChangeSlaveId,
+                    newSlaveId);
+
+                /*
+                 * Ghi lại danh sách sensor vào RAM STM32.
+                 */
+                await Task.Delay(200);
+
+                await ApplySensorConfigAsync();
+
+                await Task.Delay(200);
+
+                /*
+                 * Lưu cấu hình STM32 xuống Flash.
+                 */
+                string saveResponse =
+                    await SendSimpleCommandAsync(
+                        "AT+SAVE",
+                        4000,
+                        true);
+
+                await Task.Delay(200);
+
+                /*
+                 * Đọc lại cấu hình để xác nhận.
+                 */
+                await GetAllConfigAsync();
+
+                Log(
+                    "Change Slave ID + Save Flash thành công: " +
+                    saveResponse);
+
+                MessageBox.Show(
+                    "Đổi Slave ID thành công.\r\n\r\n" +
+                    "ID cũ: " +
+                    oldSlaveId.ToString("D2") +
+                    "\r\n" +
+                    "ID mới: " +
+                    newSlaveId.ToString("D2"),
+                    "Change Slave ID",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                string message;
+
+                if (physicalIdChanged)
+                {
+                    message =
+                        "ID thật của cảm biến có thể đã được đổi, " +
+                        "nhưng bước cập nhật/lưu cấu hình STM32 bị lỗi.\r\n\r\n" +
+                        ex.Message;
+                }
+                else
+                {
+                    message =
+                        "Không đổi được Slave ID của cảm biến.\r\n\r\n" +
+                        ex.Message;
+                }
+
+                MessageBox.Show(
+                    message,
+                    "Change Slave ID Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
         /* =====================================================
          * COMMAND WAITING
          * ===================================================== */
@@ -2524,6 +2921,16 @@ namespace STM32_WL55
             object sender,
             EventArgs e)
         {
+        }
+
+        private void label14_Click_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void cmbPort_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
         }
     }
 

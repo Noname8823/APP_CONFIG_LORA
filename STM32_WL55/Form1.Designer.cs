@@ -38,7 +38,6 @@
             this.label1 = new System.Windows.Forms.Label();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.numPower = new System.Windows.Forms.NumericUpDown();
-            this.btnSave = new System.Windows.Forms.Button();
             this.label9 = new System.Windows.Forms.Label();
             this.btnApply = new System.Windows.Forms.Button();
             this.cmbCr = new System.Windows.Forms.ComboBox();
@@ -55,6 +54,7 @@
             this.label4 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.numNodeId = new System.Windows.Forms.NumericUpDown();
+            this.btnSave = new System.Windows.Forms.Button();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.btnGetInput = new System.Windows.Forms.Button();
             this.btnGetConfig = new System.Windows.Forms.Button();
@@ -79,6 +79,9 @@
             this.colFunctionCode = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colStartRegister = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colRegisterLength = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.label14 = new System.Windows.Forms.Label();
+            this.cmbChangeSlaveId = new System.Windows.Forms.ComboBox();
+            this.btnChangeSlaveId = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numPower)).BeginInit();
@@ -149,6 +152,7 @@
             this.cmbPort.Name = "cmbPort";
             this.cmbPort.Size = new System.Drawing.Size(121, 21);
             this.cmbPort.TabIndex = 1;
+            this.cmbPort.SelectedIndexChanged += new System.EventHandler(this.cmbPort_SelectedIndexChanged);
             // 
             // label1
             // 
@@ -193,16 +197,6 @@
             this.numPower.Name = "numPower";
             this.numPower.Size = new System.Drawing.Size(120, 20);
             this.numPower.TabIndex = 2;
-            // 
-            // btnSave
-            // 
-            this.btnSave.Location = new System.Drawing.Point(325, 28);
-            this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(75, 23);
-            this.btnSave.TabIndex = 3;
-            this.btnSave.Text = "Save Flash";
-            this.btnSave.UseVisualStyleBackColor = true;
-            this.btnSave.Click += new System.EventHandler(this.btnSave_Click_1);
             // 
             // label9
             // 
@@ -344,6 +338,16 @@
             this.numNodeId.TabIndex = 2;
             this.numNodeId.ValueChanged += new System.EventHandler(this.numNodeId_ValueChanged);
             // 
+            // btnSave
+            // 
+            this.btnSave.Location = new System.Drawing.Point(325, 28);
+            this.btnSave.Name = "btnSave";
+            this.btnSave.Size = new System.Drawing.Size(75, 23);
+            this.btnSave.TabIndex = 3;
+            this.btnSave.Text = "Save Flash";
+            this.btnSave.UseVisualStyleBackColor = true;
+            this.btnSave.Click += new System.EventHandler(this.btnSave_Click_1);
+            // 
             // groupBox3
             // 
             this.groupBox3.Controls.Add(this.btnGetInput);
@@ -407,6 +411,9 @@
             // 
             // grpSensorConfig
             // 
+            this.grpSensorConfig.Controls.Add(this.btnChangeSlaveId);
+            this.grpSensorConfig.Controls.Add(this.cmbChangeSlaveId);
+            this.grpSensorConfig.Controls.Add(this.label14);
             this.grpSensorConfig.Controls.Add(this.btnSensorRemove);
             this.grpSensorConfig.Controls.Add(this.btnSensorUpdate);
             this.grpSensorConfig.Controls.Add(this.btnSensorAdd);
@@ -420,7 +427,7 @@
             this.grpSensorConfig.Controls.Add(this.label10);
             this.grpSensorConfig.Location = new System.Drawing.Point(5, 477);
             this.grpSensorConfig.Name = "grpSensorConfig";
-            this.grpSensorConfig.Size = new System.Drawing.Size(279, 208);
+            this.grpSensorConfig.Size = new System.Drawing.Size(279, 271);
             this.grpSensorConfig.TabIndex = 4;
             this.grpSensorConfig.TabStop = false;
             this.grpSensorConfig.Text = "RS485 Sensor Config";
@@ -428,7 +435,7 @@
             // 
             // btnSensorRemove
             // 
-            this.btnSensorRemove.Location = new System.Drawing.Point(183, 171);
+            this.btnSensorRemove.Location = new System.Drawing.Point(198, 219);
             this.btnSensorRemove.Name = "btnSensorRemove";
             this.btnSensorRemove.Size = new System.Drawing.Size(75, 23);
             this.btnSensorRemove.TabIndex = 6;
@@ -437,7 +444,7 @@
             // 
             // btnSensorUpdate
             // 
-            this.btnSensorUpdate.Location = new System.Drawing.Point(102, 171);
+            this.btnSensorUpdate.Location = new System.Drawing.Point(104, 219);
             this.btnSensorUpdate.Name = "btnSensorUpdate";
             this.btnSensorUpdate.Size = new System.Drawing.Size(75, 23);
             this.btnSensorUpdate.TabIndex = 6;
@@ -446,7 +453,7 @@
             // 
             // btnSensorAdd
             // 
-            this.btnSensorAdd.Location = new System.Drawing.Point(21, 171);
+            this.btnSensorAdd.Location = new System.Drawing.Point(13, 219);
             this.btnSensorAdd.Name = "btnSensorAdd";
             this.btnSensorAdd.Size = new System.Drawing.Size(75, 23);
             this.btnSensorAdd.TabIndex = 6;
@@ -588,6 +595,33 @@
             this.colRegisterLength.ReadOnly = true;
             this.colRegisterLength.Width = 120;
             // 
+            // label14
+            // 
+            this.label14.AutoSize = true;
+            this.label14.Location = new System.Drawing.Point(21, 169);
+            this.label14.Name = "label14";
+            this.label14.Size = new System.Drawing.Size(88, 13);
+            this.label14.TabIndex = 6;
+            this.label14.Text = "Change Slave ID";
+            this.label14.Click += new System.EventHandler(this.label14_Click_1);
+            // 
+            // cmbChangeSlaveId
+            // 
+            this.cmbChangeSlaveId.FormattingEnabled = true;
+            this.cmbChangeSlaveId.Location = new System.Drawing.Point(115, 166);
+            this.cmbChangeSlaveId.Name = "cmbChangeSlaveId";
+            this.cmbChangeSlaveId.Size = new System.Drawing.Size(121, 21);
+            this.cmbChangeSlaveId.TabIndex = 6;
+            // 
+            // btnChangeSlaveId
+            // 
+            this.btnChangeSlaveId.Location = new System.Drawing.Point(13, 248);
+            this.btnChangeSlaveId.Name = "btnChangeSlaveId";
+            this.btnChangeSlaveId.Size = new System.Drawing.Size(260, 23);
+            this.btnChangeSlaveId.TabIndex = 6;
+            this.btnChangeSlaveId.Text = "Change Slave ID";
+            this.btnChangeSlaveId.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -672,6 +706,9 @@
         private System.Windows.Forms.Button btnSensorAdd;
         private System.Windows.Forms.Button btnSensorRemove;
         private System.Windows.Forms.Button btnSensorUpdate;
+        private System.Windows.Forms.Label label14;
+        private System.Windows.Forms.Button btnChangeSlaveId;
+        private System.Windows.Forms.ComboBox cmbChangeSlaveId;
     }
 }
 
